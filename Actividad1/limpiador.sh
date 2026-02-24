@@ -4,7 +4,17 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
+
+# Contadores
+CONTADOR_IMGS=0
+CONTADOR_DOCS=0
+CONTADOR_TXTS=0
+CONTADOR_PDFS=0
+CONTADOR_VACIOS=0
+ARCHIVOS_NO_MOVIDOS=0
+CARPETAS_VACIAS=0
 
 # Validar parámetros
 if [ $# -gt 1 ]; then
@@ -49,39 +59,94 @@ echo ""
 
 # Mover imágenes (jpg, png, gif) a IMGS/
 echo "Moviendo imágenes..."
+ANTES_IMGS=$(find IMGS -maxdepth 1 -type f 2>/dev/null | wc -l)
 find . -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" \) -print0 | xargs -0 -r mv -t IMGS/ 2>/dev/null
+CONTADOR_IMGS=$(($(find IMGS -maxdepth 1 -type f 2>/dev/null | wc -l) - ANTES_IMGS))
 
 # Mover documentos (docx, odt) a DOCS/
 echo "Moviendo documentos..."
+ANTES_DOCS=$(find DOCS -maxdepth 1 -type f 2>/dev/null | wc -l)
 find . -maxdepth 1 -type f \( -iname "*.docx" -o -iname "*.odt" \) -print0 | xargs -0 -r mv -t DOCS/ 2>/dev/null
+CONTADOR_DOCS=$(($(find DOCS -maxdepth 1 -type f 2>/dev/null | wc -l) - ANTES_DOCS))
 
 # Mover archivos de texto (txt) a TXTS/
 echo "Moviendo archivos de texto..."
+ANTES_TXTS=$(find TXTS -maxdepth 1 -type f 2>/dev/null | wc -l)
 find . -maxdepth 1 -type f -iname "*.txt" -print0 | xargs -0 -r mv -t TXTS/ 2>/dev/null
+CONTADOR_TXTS=$(($(find TXTS -maxdepth 1 -type f 2>/dev/null | wc -l) - ANTES_TXTS))
 
 # Mover PDFs a PDFS/
 echo "Moviendo PDFs..."
+ANTES_PDFS=$(find PDFS -maxdepth 1 -type f 2>/dev/null | wc -l)
 find . -maxdepth 1 -type f -iname "*.pdf" -print0 | xargs -0 -r mv -t PDFS/ 2>/dev/null
+CONTADOR_PDFS=$(($(find PDFS -maxdepth 1 -type f 2>/dev/null | wc -l) - ANTES_PDFS))
 
 # Mover archivos vacíos (0 bytes) a VACIOS/
 echo "Moviendo archivos vacíos..."
+ANTES_VACIOS=$(find VACIOS -maxdepth 1 -type f 2>/dev/null | wc -l)
 find . -maxdepth 1 -type f -size 0 -print0 | xargs -0 -r mv -t VACIOS/ 2>/dev/null
+CONTADOR_VACIOS=$(($(find VACIOS -maxdepth 1 -type f 2>/dev/null | wc -l) - ANTES_VACIOS))
 
-echo ""
-echo -e "${BLUE}=== Organización completada ===${NC}"
-echo ""
+# Contar archivos no movidos
+ARCHIVOS_NO_MOVIDOS=$(find . -maxdepth 1 -type f 2>/dev/null | wc -l)
 
-# Mostrar resumen
-echo -e "${YELLOW}Resumen de carpetas:${NC}"
+# Contar carpetas vacías
 for carpeta in "${CARPETAS[@]}"; do
     if [ -d "$carpeta" ]; then
         cantidad=$(find "$carpeta" -maxdepth 1 -type f 2>/dev/null | wc -l)
-        if [ "$cantidad" -gt 0 ]; then
-            echo -e "  ${GREEN}✓${NC} $carpeta: $cantidad archivos"
-        else
-            echo "  $carpeta: vacía"
+        if [ "$cantidad" -eq 0 ]; then
+            CARPETAS_VACIAS=$((CARPETAS_VACIAS + 1))
         fi
     fi
 done
 
-echo -e "${GREEN}¡Listo!${NC}"
+echo ""
+echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║${NC}${MAGENTA}   📊 INFORME DE ORGANIZACIÓN       ${NC}${BLUE}║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+echo ""
+
+# Variables para mensaje
+TOTAL_MOVIDOS=$((CONTADOR_IMGS + CONTADOR_DOCS + CONTADOR_TXTS + CONTADOR_PDFS + CONTADOR_VACIOS))
+
+# Mensaje personalizado
+MENSAJE="Se han movido"
+[ $CONTADOR_IMGS -gt 0 ] && MENSAJE="$MENSAJE ${GREEN}$CONTADOR_IMGS imagen$([ $CONTADOR_IMGS -eq 1 ] && echo "" || echo "s")${NC}"
+[ $CONTADOR_DOCS -gt 0 ] && [ $CONTADOR_IMGS -gt 0 ] && MENSAJE="$MENSAJE, " || MENSAJE="$MENSAJE "
+[ $CONTADOR_DOCS -gt 0 ] && MENSAJE="$MENSAJE${YELLOW}$CONTADOR_DOCS documento$([ $CONTADOR_DOCS -eq 1 ] && echo "" || echo "s")${NC}"
+[ $CONTADOR_TXTS -gt 0 ] && [ $((CONTADOR_IMGS + CONTADOR_DOCS)) -gt 0 ] && MENSAJE="$MENSAJE, " || [ $CONTADOR_TXTS -gt 0 ] && MENSAJE="$MENSAJE "
+[ $CONTADOR_TXTS -gt 0 ] && MENSAJE="$MENSAJE${BLUE}$CONTADOR_TXTS archivo$([ $CONTADOR_TXTS -eq 1 ] && echo "" || echo "s") TXT${NC}"
+[ $CONTADOR_PDFS -gt 0 ] && [ $((CONTADOR_IMGS + CONTADOR_DOCS + CONTADOR_TXTS)) -gt 0 ] && MENSAJE="$MENSAJE, " || [ $CONTADOR_PDFS -gt 0 ] && MENSAJE="$MENSAJE "
+[ $CONTADOR_PDFS -gt 0 ] && MENSAJE="$MENSAJE${RED}$CONTADOR_PDFS PDF$([ $CONTADOR_PDFS -eq 1 ] && echo "" || echo "s")${NC}"
+[ $CONTADOR_VACIOS -gt 0 ] && [ $((CONTADOR_IMGS + CONTADOR_DOCS + CONTADOR_TXTS + CONTADOR_PDFS)) -gt 0 ] && MENSAJE="$MENSAJE y " || [ $CONTADOR_VACIOS -gt 0 ] && MENSAJE="$MENSAJE "
+[ $CONTADOR_VACIOS -gt 0 ] && MENSAJE="$MENSAJE${MAGENTA}$CONTADOR_VACIOS elemento$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s") vacío$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s")${NC}"
+
+if [ $TOTAL_MOVIDOS -gt 0 ]; then
+    echo -e "$MENSAJE"
+else
+    echo -e "${YELLOW}No se encontraron archivos para mover${NC}"
+fi
+
+echo ""
+
+# Resumen de carpetas
+echo -e "${YELLOW}Contenido de carpetas:${NC}"
+echo -e "  ${GREEN}📁 IMGS${NC}............ $CONTADOR_IMGS archivo$([ $CONTADOR_IMGS -eq 1 ] && echo "" || echo "s")"
+echo -e "  ${YELLOW}📁 DOCS${NC}............ $CONTADOR_DOCS archivo$([ $CONTADOR_DOCS -eq 1 ] && echo "" || echo "s")"
+echo -e "  ${BLUE}📁 TXTS${NC}............ $CONTADOR_TXTS archivo$([ $CONTADOR_TXTS -eq 1 ] && echo "" || echo "s")"
+echo -e "  ${RED}📁 PDFS${NC}............ $CONTADOR_PDFS archivo$([ $CONTADOR_PDFS -eq 1 ] && echo "" || echo "s")"
+echo -e "  ${MAGENTA}📁 VACIOS${NC}......... $CONTADOR_VACIOS archivo$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s")"
+
+echo ""
+
+# Información adicional
+if [ $ARCHIVOS_NO_MOVIDOS -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  Hay $ARCHIVOS_NO_MOVIDOS archivo$([ $ARCHIVOS_NO_MOVIDOS -eq 1 ] && echo "" || echo "s") sin clasificar${NC}"
+fi
+
+if [ $CARPETAS_VACIAS -gt 0 ]; then
+    echo -e "${BLUE}ℹ️  $CARPETAS_VACIAS carpeta$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s") vacía$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s")${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✓ ¡Organización completada con éxito!${NC}"
