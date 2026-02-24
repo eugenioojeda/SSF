@@ -157,15 +157,29 @@ if [ $CONTADOR_VACIOS -gt 0 ] || [ $CARPETAS_VACIAS -gt 0 ]; then
     ELEMENTOS_A_BORRAR=$((CONTADOR_VACIOS + CARPETAS_VACIAS))
     echo -e "${YELLOW}───────────────────────────────────────${NC}"
     echo -e "${RED}🗑️  Se encontraron $ELEMENTOS_A_BORRAR elemento$([ $ELEMENTOS_A_BORRAR -eq 1 ] && echo "" || echo "s") vacío$([ $ELEMENTOS_A_BORRAR -eq 1 ] && echo "" || echo "s")${NC}"
-    
-    if [ $CONTADOR_VACIOS -gt 0 ]; then
-        echo -e "   ${MAGENTA}↳ $CONTADOR_VACIOS archivo$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s") en VACIOS/${NC}"
-    fi
-    if [ $CARPETAS_VACIAS -gt 0 ]; then
-        echo -e "   ${MAGENTA}↳ $CARPETAS_VACIAS carpeta$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s") vacía$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s")${NC}"
-    fi
-    
     echo ""
+    
+    # Listar archivos vacíos
+    if [ $CONTADOR_VACIOS -gt 0 ]; then
+        echo -e "${MAGENTA}Archivos vacíos:${NC}"
+        find VACIOS -maxdepth 1 -type f -print0 2>/dev/null | while IFS= read -r -d '' archivo; do
+            nombre_archivo=$(basename "$archivo")
+            echo -e "  ${RED}•${NC} $nombre_archivo"
+        done
+        echo ""
+    fi
+    
+    # Listar carpetas vacías
+    if [ $CARPETAS_VACIAS -gt 0 ]; then
+        echo -e "${MAGENTA}Carpetas vacías:${NC}"
+        for carpeta in "${CARPETAS[@]}"; do
+            if [ -d "$carpeta" ] && [ -z "$(find "$carpeta" -maxdepth 1 -type f 2>/dev/null)" ]; then
+                echo -e "  ${BLUE}📁${NC} $carpeta"
+            fi
+        done
+        echo ""
+    fi
+    
     read -p "¿Deseas eliminarlos? (s/n): " respuesta
     echo ""
     
