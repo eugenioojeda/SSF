@@ -150,3 +150,51 @@ fi
 
 echo ""
 echo -e "${GREEN}✓ ¡Organización completada con éxito!${NC}"
+echo ""
+
+# Preguntar si desea eliminar vacíos
+if [ $CONTADOR_VACIOS -gt 0 ] || [ $CARPETAS_VACIAS -gt 0 ]; then
+    ELEMENTOS_A_BORRAR=$((CONTADOR_VACIOS + CARPETAS_VACIAS))
+    echo -e "${YELLOW}───────────────────────────────────────${NC}"
+    echo -e "${RED}🗑️  Se encontraron $ELEMENTOS_A_BORRAR elemento$([ $ELEMENTOS_A_BORRAR -eq 1 ] && echo "" || echo "s") vacío$([ $ELEMENTOS_A_BORRAR -eq 1 ] && echo "" || echo "s")${NC}"
+    
+    if [ $CONTADOR_VACIOS -gt 0 ]; then
+        echo -e "   ${MAGENTA}↳ $CONTADOR_VACIOS archivo$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s") en VACIOS/${NC}"
+    fi
+    if [ $CARPETAS_VACIAS -gt 0 ]; then
+        echo -e "   ${MAGENTA}↳ $CARPETAS_VACIAS carpeta$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s") vacía$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s")${NC}"
+    fi
+    
+    echo ""
+    read -p "¿Deseas eliminarlos? (s/n): " respuesta
+    echo ""
+    
+    case "$respuesta" in
+        [sS]|[sS][iI]|[yY]|[yY][eE][sS])
+            # Eliminar archivos en VACIOS/
+            if [ $CONTADOR_VACIOS -gt 0 ]; then
+                rm -f VACIOS/* 2>/dev/null
+                echo -e "${GREEN}✓ Se han eliminado los $CONTADOR_VACIOS archivo$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s") vacío$([ $CONTADOR_VACIOS -eq 1 ] && echo "" || echo "s")${NC}"
+            fi
+            
+            # Eliminar carpetas vacías
+            for carpeta in "${CARPETAS[@]}"; do
+                if [ -d "$carpeta" ] && [ -z "$(find "$carpeta" -maxdepth 1 -type f 2>/dev/null)" ]; then
+                    rmdir "$carpeta" 2>/dev/null
+                fi
+            done
+            
+            if [ $CARPETAS_VACIAS -gt 0 ]; then
+                echo -e "${GREEN}✓ Se han eliminado las $CARPETAS_VACIAS carpeta$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s") vacía$([ $CARPETAS_VACIAS -eq 1 ] && echo "" || echo "s")${NC}"
+            fi
+            
+            echo -e "${GREEN}¡Limpieza completada!${NC}"
+            ;;
+        [nN]|[nN][oO])
+            echo -e "${BLUE}✓ Se mantienen los elementos vacíos${NC}"
+            ;;
+        *)
+            echo -e "${YELLOW}⚠️  Opción no válida. Se mantienen los elementos vacíos${NC}"
+            ;;
+    esac
+fi
